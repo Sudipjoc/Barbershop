@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barber Details</title>
+    <link rel="stylesheet" href="barber-detail.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index2.html" class="logo">BarberShop</a>
+            <ul class="menu-items">
+                <li><a href="index2.html">Home</a></li>
+                <li><a href="barberuser.html">Barbers</a></li>
+                <li><a href="booking.html">Booking</a></li>
+            </ul>
+            <div class="user-section">
+                <span id="username">Welcome, User</span> <!-- Display username -->
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Barber Detail Section -->
+    <div id="barber-detail">
+        <h2 id="barber-name"></h2>
+        <img id="barber-image" src="" alt="Barber Image">
+        <p id="barber-location"></p>
+        <p id="barber-status"></p>
+        <p id="appointments-count"></p>
+
+     
+        <button id="book-btn">Book Appointment</button>
+
+        <br>
+        <div>
+            <label for="review-text">Your Review:</label>
+            <textarea id="review-text" placeholder="Write your review here..."></textarea>
+        </div>
+
+
+        <section class="service-grid pb-5 pt-5">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-12 text-center mb-4">
+                        <div class="service-title">
+                            <h4>Our Services</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="row" id="services-container">
+                    <!-- Services will be injected here -->
+                </div>
+            </div>
+        </section>
+        
+        <!-- <div>
+            <label>Rating:</label>
+            <div>
+                <input type="radio" id="rating-1" name="rating" value="1">
+                <label for="rating-1">1 Star</label>
+            </div>
+            <div>
+                <input type="radio" id="rating-2" name="rating" value="2">
+                <label for="rating-2">2 Stars</label>
+            </div>
+            <div>
+                <input type="radio" id="rating-3" name="rating" value="3">
+                <label for="rating-3">3 Stars</label>
+            </div>
+            <div>
+                <input type="radio" id="rating-4" name="rating" value="4">
+                <label for="rating-4">4 Stars</label>
+            </div>
+            <div>
+                <input type="radio" id="rating-5" name="rating" value="5">
+                <label for="rating-5">5 Stars</label>
+            </div>
+        </div>
+        
+        <button id="submit-review-btn">Submit Review</button> -->
+        
+        <div id="user-reviews">
+            <h3>Your Reviews:</h3>
+            <ul id="user-reviews-list">
+               
+            </ul>
+        </div>
+        
+</div>
+
+    <script src="barber-detail.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbers</title>
+    <link rel="stylesheet" href="barberstyle.css">
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index2.html" class="logo">BarberShop</a>
+            <ul class="menu-items">
+                <li><a href="index2.html">Home</a></li>
+                <li><a href="barberuser.html">Barbers</a></li>
+                <li><a href="booking.html">Booking</a></li>
+            </ul>
+            <div class="user-section">
+                <span id="username"></span>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="filter-bar">
+        <input
+          type="text"
+          id="search-location"
+          placeholder="Search by location..."
+          autocomplete="off"
+        />
+        <ul id="location-suggestions" class="suggestions-list"></ul>
+      </div>
+<br>
+<br>      
+<br>
+<br>     <br>
+<br>     
+    <!-- Barber List Section (Grid) -->
+    <div class="barber-container">
+        <h2>Our Barbers</h2>
+        <div id="barber-grid" class="barber-grid">
+            <!-- Barbers will be dynamically added here -->
+        </div>
+    </div>
+
+    <script src="barberuser.js"></script>
+</body>
+</html>

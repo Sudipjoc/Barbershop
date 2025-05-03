@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>Admin Dash</h2>
+            <ul>
+                <li><a href="#" id="dashboard-link">Dashboard</a></li>
+                <li><a href="#" id="appointments-link">Appointments</a></li>
+                <li><a href="#" id="barbers-link">Barbers</a></li>
+                <li><a href="#" id="users-link">Users</a></li>
+                <li><a href="#" id="services-link">Update Services</a></li>
+                <li id="logout-btn" style="cursor: pointer; color: rgb(237, 136, 136);">Logout</li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard">
+            <header>
+                <h1>Dashboard</h1>
+                <div class="admin-profile">
+                    <img src="admin-avatar.png" alt="Admin Avatar">
+                    <span id="admin-name">Admin Name</span>
+                </div>
+            </header>
+
+            <!-- Stats Section -->
+            <section class="stats" id="stats-section">
+                <div class="stat-box">Total Users: <span id="total-users">0</span></div>
+                <div class="stat-box">Total Barbers: <span id="total-barbers">0</span></div>
+                <div class="stat-box">Total Appointments: <span id="total-appointments">0</span></div>
+                <div class="stat-box">Revenue: Rs. <span id="total-revenue">0</span></div>
+            </section>
+
+            <!-- Appointments Section -->
+            <section class="appointments" id="appointments-section" style="display: none;">
+                <h2>Recent Appointments</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Barber</th>
+                            <th>Service</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointment-list"></tbody>
+                </table>
+            </section>
+
+            <!-- Barbers Section -->
+            <section class="barber-management" id="barber-section" style="display: none;">
+                <h2>Barber List</h2>
+                <button id="add-barber-btn">+ Add Barber</button>
+
+                <!-- Barber Signup Form -->
+                <div id="barber-form-container" style="display: none;">
+                    <h3>Add Barber</h3>
+                    <form id="barber-form" enctype="multipart/form-data">
+                      <label for="barber-name">Name:</label>
+                      <input type="text" id="barber-name" name="name" required>
+                  
+                      <label for="barber-email">Email:</label>
+                      <input type="email" id="barber-email" name="email" required>
+                  
+                      <label for="barber-password">Password:</label>
+                      <input type="password" id="barber-password" name="password" required>
+                  
+                      <label for="barber-location">Location:</label>
+                      <input type="text" id="barber-location" name="location" required>
+                  
+                      <label for="barber-image">Profile Image:</label>
+                      <input type="file" id="barber-image" name="image" accept="image/*" required>
+                  
+                      <img id="image-preview" style="max-width: 150px; display: none;" />
+                      <button type="submit">Register Barber</button>
+                    </form>
+                  </div>
+                  
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Location</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="barber-list"></tbody>
+                </table>
+            </section>
+
+            <!-- Users Section -->
+            <section class="user-management" id="user-section" style="display: none;">
+                <h2>User List</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-list"></tbody>
+                </table>
+            </section>
+
+            <!-- Services Section -->
+            <section id="services-section" style="display: none;">
+                <h2>Update Services</h2>
+                <div id="service-list">
+                    <!-- Services will be rendered dynamically -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

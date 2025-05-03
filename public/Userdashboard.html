@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>User Dashboard</title>
+  <link rel="stylesheet" href="user.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index2.html" class="logo">Barbershop</a>
+      <div class="nav-group">
+        <ul class="menu-items">
+          <li><a href="#appointments">My Appointments</a></li>
+          <li class="notification-icon-wrapper">
+            <a href="javascript:void(0);" class="notification-icon">
+              <i class="fas fa-bell"></i>
+            </a>
+            <div class="notification-dropdown" id="notification-list">
+              <p>No new notifications yet.</p>
+            </div>
+          </li>
+        </ul>
+
+        <!-- User Dropdown -->
+        <div class="user-dropdown" id="userDropdown">
+          <span id="username">Profile</span>
+          <div class="dropdown-menu" id="dropdownMenu">
+            <a href="profile.html">Profile</a>
+            <a href="#" id="logout-btn">Logout</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- User Dashboard -->
+  <section class="dashboard-section">
+    <div class="dashboard-container">
+      <h2>Welcome, <span id="userWelcome"></span></h2>
+
+      <!-- Appointments Section -->
+      <div id="appointments">
+        <h3>Your Appointments</h3>
+        <div id="appointment-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Socket.IO & Toastify -->
+  <script src="http://localhost:5000/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <script src="userdashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+/* Reset default margin and padding */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Body and Font Style */
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+  }
+  
+  /* Navbar Styles */
+  .navbar {
+    background-color: #333;
+    color: #fff;
+    padding: 10px 0;
+  }
+  
+  .navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 0 20px;
+  }
+  
+  .navbar a.logo {
+    color: #fff;
+    text-decoration: none;
+    font-size: 24px;
+  }
+  
+  .menu-items {
+    list-style: none;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .menu-items li a {
+    color: #fff;
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+  }
+  
+  .menu-items li a:hover {
+    background-color: #444;
+  }
+  
+  .user-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .logout-btn {
+    background-color: #f44336;
+    color: #fff;
+    padding: 5px 10px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  .logout-btn:hover {
+    background-color: #d32f2f;
+  }
+  
+  /* Search Container */
+  .search-container {
+    margin: 20px auto;
+    text-align: center;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+  }
+  
+  #search-location {
+    padding: 10px;
+    width: 100%;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  #location-suggestions {
+    position: absolute;
+    top: 42px;
+    width: 100%;
+    background: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    z-index: 1000;
+    list-style: none;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+  }
+  
+  #location-suggestions li {
+    padding: 10px;
+    cursor: pointer;
+  }
+  
+  #location-suggestions li:hover {
+    background-color: #f0f0f0;
+  }
+  
+  /* Barber Grid Layout */
+  .barber-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    padding: 20px;
+  }
+  
+  .barber-card {
+    flex: 1 1 calc(33.33% - 40px);
+    max-width: 300px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-align: left;
+    background-color: #fff;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  }
+  
+  .barber-card:hover {
+    transform: scale(1.03);
+  }
+  
+  .barber-card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 5px;
+  }
+  
+  .barber-card h3 {
+    margin-top: 10px;
+    color: #222;
+  }
+  
+  .barber-card p {
+    color: #555;
+    font-size: 0.95rem;
+    margin: 5px 0;
+  }
+  
+  .barber-card ul {
+    padding-left: 20px;
+    margin: 10px 0 0;
+  }
+  
+  .barber-card li {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+  
+  /* Responsive Grid */
+  @media (max-width: 1024px) {
+    .barber-card {
+      flex: 1 1 calc(45% - 40px);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .barber-card {
+      flex: 1 1 100%;
+    }
+  
+    .menu-items {
+      justify-content: center;
+    }
+  }
+  

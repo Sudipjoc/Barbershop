@@ -1,0 +1,214 @@
+/* Reset & Base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
+    line-height: 1.6;
+  }
+  
+  /* Navbar */
+  .navbar {
+    background-color: #222;
+    padding: 15px 30px;
+    color: #fff;
+  }
+  
+  .navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+    text-decoration: none;
+  }
+  
+  .nav-group {
+    display: flex;
+    align-items: center;
+  }
+  
+  .menu-items {
+    list-style: none;
+    display: flex;
+    margin-right: 20px;
+  }
+  
+  .menu-items li {
+    margin: 0 10px;
+  }
+  
+  .menu-items a {
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 12px;
+    transition: background 0.3s ease;
+  }
+  
+  .menu-items a:hover {
+    background-color: #444;
+    border-radius: 5px;
+  }
+  
+  /* User Dropdown */
+  .user-dropdown {
+    position: relative;
+    cursor: pointer;
+  }
+  
+  #username {
+    color: #fff;
+    padding: 8px 12px;
+  }
+  
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 35px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-width: 150px;
+    z-index: 10;
+  }
+  
+  .dropdown-menu a {
+    display: block;
+    padding: 10px 15px;
+    color: #333;
+    text-decoration: none;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .dropdown-menu a:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .user-dropdown:hover .dropdown-menu {
+    display: block;
+  }
+  
+  /* Dashboard Section */
+  .dashboard-section {
+    padding: 40px;
+  }
+  
+  .dashboard-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+  
+  .dashboard-container h2 {
+    margin-bottom: 30px;
+    color: #222;
+  }
+  
+  .dashboard-container h3 {
+    margin: 20px 0 10px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 5px;
+  }
+  
+  .notification-icon-wrapper {
+    position: relative;
+  }
+  
+  .notification-icon {
+    font-size: 20px;
+    color: white;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  
+  .notification-dropdown {
+    display: none;
+    position: absolute;
+    top: 30px;
+    right: 0;
+    width: 250px;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    color: black;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    padding: 10px;
+    z-index: 1000;
+  }
+  
+  .notification-icon-wrapper:hover .notification-dropdown {
+    display: block;
+  }
+  
+  .notification-dropdown p {
+    margin: 0;
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+  }
+  
+  /* Appointments Table */
+  .appointments-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 0.95rem;
+  }
+  
+  .appointments-table thead {
+    background-color: #333;
+    color: #fff;
+  }
+  
+  .appointments-table th,
+  .appointments-table td {
+    padding: 12px 15px;
+    border: 1px solid #eaeaea;
+    text-align: left;
+  }
+  
+  .appointments-table tbody tr:hover {
+    background-color: #f1f1f1;
+  }
+  
+  .appointments-table td:first-child,
+  .appointments-table th:first-child {
+    width: 50px;
+    text-align: center;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .navbar-container,
+    .menu-items {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .menu-items li {
+      margin: 5px 0;
+    }
+  
+    .dashboard-section {
+      padding: 20px;
+    }
+  
+    .appointments-table th,
+    .appointments-table td {
+      padding: 10px;
+    }
+  }
+  

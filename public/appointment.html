@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Page</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    body {
+      background: #f0f0f0;
+    }
+    .booking-section {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      margin-top: 50px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    .default_btn {
+      background-color: #000;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="booking-section">
+    <h2 class="text-center mb-4">Book a Service</h2>
+    <form id="booking_form">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <input type="text" id="book_name" class="form-control" placeholder="Your Name" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <input type="email" id="book_email" class="form-control" placeholder="Email" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <input type="text" id="book_phone" class="form-control" placeholder="Phone Number" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <input type="text" id="book_area" class="form-control" placeholder="Location" readonly>
+        </div>
+        <div class="col-md-6 mb-3">
+          <select id="book_service" class="form-control" required>
+            <option value="">Select Service</option>
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <select id="book_barber" class="form-control" required>
+            <option value="">Select Barber</option>
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <input type="text" id="book_time" class="form-control" placeholder="Pick Date & Time" required>
+        </div>
+        <div class="col-md-6 mb-3">
+          <select id="book_payment" class="form-control" required>
+            <option value="Cash">Cash</option>
+            <option value="Online">Online</option>
+          </select>
+        </div>
+      </div>
+      <div class="text-center">
+        <button type="submit" class="default_btn">Confirm Booking</button>
+        <div id="book_msg" class="alert mt-3" style="display:none;"></div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+  const token = localStorage.getItem("token") || null;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const barberSelect = document.getElementById("book_barber");
+    const serviceSelect = document.getElementById("book_service");
+    const bookingForm = document.getElementById("booking_form");
+    const areaInput = document.getElementById("book_area");
+    const msgBox = document.getElementById("book_msg");
+
+    flatpickr("#book_time", {
+      enableTime: true,
+      dateFormat: "Y-m-d H:i",
+      minDate: "today",
+      defaultHour: 10
+    });
+
+    async function loadBarbers() {
+      try {
+        const res = await fetch("http://localhost:5000/barber/barbers");
+        const barbers = await res.json();
+
+        barbers.forEach(barber => {
+          const option = document.createElement("option");
+          option.value = barber._id;
+          option.text = `${barber.name} - ${barber.location}`;
+          option.dataset.location = barber.location;
+          barberSelect.appendChild(option);
+        });
+
+        barberSelect.addEventListener("change", () => {
+          const selected = barbers.find(b => b._id === barberSelect.value);
+          renderServices(selected?.services || []);
+          areaInput.value = selected?.location || "";
+        });
+      } catch (err) {
+        alert("Error loading barbers");
+      }
+    }
+
+    function renderServices(services) {
+      serviceSelect.innerHTML = '<option value="">Select Service</option>';
+      services.forEach(service => {
+        const option = document.createElement("option");
+        option.value = `${service.type}|${service.price}`;
+        option.text = `${service.type} - NPR ${service.price}`;
+        serviceSelect.appendChild(option);
+      });
+    }
+
+    bookingForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const [service, price] = serviceSelect.value.split("|");
+
+      const payload = {
+        name: document.getElementById("book_name").value,
+        phone: document.getElementById("book_phone").value,
+        bookingTime: document.getElementById("book_time").value,
+        service,
+        price: parseFloat(price),
+        area: areaInput.value,
+        barberId: barberSelect.value,
+        paymentMethod: document.getElementById("book_payment").value
+      };
+
+      try {
+        const res = await fetch("http://localhost:5000/book", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        msgBox.textContent = data.msg || "Success";
+        msgBox.className = `alert alert-${res.ok ? "success" : "danger"}`;
+        msgBox.style.display = "block";
+        if (res.ok) bookingForm.reset();
+      } catch (err) {
+        msgBox.textContent = "Failed to book.";
+        msgBox.className = "alert alert-danger";
+        msgBox.style.display = "block";
+      }
+    });
+
+    loadBarbers();
+  });
+</script>
+</body>
+</html>

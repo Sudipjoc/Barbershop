@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Book a Barber</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+    body {
+
+  background-image: url('image/barber-background.jpg'); /* Add background image here */
+  background-size: cover; /* Ensure the image covers the screen */
+  background-position: center; /* Center the image */
+  background-attachment: fixed; /* Keep the background fixed when scrolling */
+  }
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #2e2d2d;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      text-decoration: none;
+    }
+
+    .menu-items {
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin: 0;
+      padding: 0;
+      flex-grow: 1;
+      margin-left: 700px;
+    }
+
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    .navbar a:hover {
+      color: #e8370f;
+    }
+
+    .user-section {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 20px;
+    }
+
+    .logout-btn {
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border-radius: 3.5px;
+      background: #dd8888;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background: #900d0d;
+    }
+
+    .container {
+  max-width: 800px;
+  margin: 100px auto 50px;
+  padding: 20px;
+  background: linear-gradient(135deg, #0c0b0b, #a8a3a3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .shop-info {
+      background: #e3e3e3;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+
+    .booking-form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .booking-form label {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .booking-form input,
+    .booking-form select {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      width: 100%;
+    }
+
+    .btn-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .submit-btn,
+    .cancel-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+    }
+
+    .submit-btn {
+      background: #b01b1b;
+    }
+
+    .submit-btn:hover {
+      background: #900d0d;
+    }
+
+    .cancel-btn {
+      background: gray;
+    }
+
+    .cancel-btn:hover {
+      background: darkgray;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index2.html" class="logo">Barber Shop</a>
+    <ul class="menu-items">
+      <li><a href="index2.html">Services</a></li>
+      <li><a href="index2.html">About</a></li>
+      <li><a href="booking.html">Booking</a></li>
+      <li><a href="barberuser.html">Barber</a></li>
+    </ul>
+    <div class="user-section">
+      <span id="username"></span>
+      <button id="logout-btn" class="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>Book an Appointment</h2>
+
+    <div class="shop-info">
+      <p><strong>Barber Shop:</strong> The Classic Cut</p>
+      <p><strong>Opening Hours:</strong> 9:00 AM - 8:00 PM</p>
+    </div>
+
+    <form class="booking-form" onsubmit="bookAppointment(event)">
+      <label for="name">Your Name</label>
+      <input type="text" id="name" required />
+
+      <label for="phone">Phone Number</label>
+      <input type="tel" id="phone" required />
+
+      <label for="booking-time">Preferred Time</label>
+      <input type="time" id="booking-time" required />
+
+      <label for="service">Select Service</label>
+      <select id="service" required>
+        <option value="" disabled selected>Loading services...</option>
+      </select>
+
+      <label for="barber">Select Barber</label>
+      <select id="barber" required>
+        <option value="" disabled selected>Loading barbers...</option>
+      </select>
+
+      <label for="area">Barber Area</label>
+      <select id="area" required>
+        <option value="" disabled selected>Select an area</option>
+      </select>
+
+      <div class="btn-container">
+        <button type="submit" class="submit-btn">Book Now</button>
+        <button type="button" class="cancel-btn" onclick="cancelBooking()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    async function fetchBarbers() {
+      try {
+        const response = await fetch("http://localhost:5000/barbers");
+        const barbers = await response.json();
+        populateBarbers(barbers);
+      } catch (error) {
+        console.error("Error fetching barbers:", error);
+      }
+    }
+
+    function populateBarbers(barbers) {
+      const barberSelect = document.getElementById("barber");
+      const areaSelect = document.getElementById("area");
+      barberSelect.innerHTML = '<option value="" disabled selected>Select a barber</option>';
+      areaSelect.innerHTML = '<option value="" disabled selected>Select an area</option>';
+
+      barbers.forEach(barber => {
+        const option = document.createElement("option");
+        option.value = barber._id;
+        option.textContent = barber.name;
+        option.dataset.area = barber.location;
+        barberSelect.appendChild(option);
+      });
+
+      barberSelect.addEventListener("change", () => {
+        const selected = barberSelect.options[barberSelect.selectedIndex];
+        areaSelect.innerHTML = `<option value="${selected.dataset.area}" selected>${selected.dataset.area}</option>`;
+      });
+    }
+
+    async function fetchServices() {
+      try {
+        const response = await fetch("http://localhost:5000/admin/services");
+        const services = await response.json();
+        populateServices(services);
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    }
+
+    function populateServices(services) {
+      const serviceSelect = document.getElementById("service");
+      serviceSelect.innerHTML = '<option value="" disabled selected>Select a service</option>';
+
+      services.forEach(service => {
+        const option = document.createElement("option");
+        option.value = service._id;
+        option.textContent = `${service.type} - NPR ${service.price}`;  // Change to NPR
+        serviceSelect.appendChild(option);
+      });
+    }
+
+    async function bookAppointment(event) {
+      event.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const bookingTime = document.getElementById("booking-time").value.trim();
+      const service = document.getElementById("service").value;
+      const barber = document.getElementById("barber").value;
+      const area = document.getElementById("area").value;
+
+      if (!name || !phone || !bookingTime || !service || !barber || !area) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      const bookingData = { name, phone, bookingTime, service, barber, area };
+
+      try {
+        const response = await fetch("http://localhost:5000/book", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(bookingData),
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          alert("Booked");
+          document.querySelector(".booking-form").reset();
+        } else {
+          alert("Booking failed: " + result.message);
+        }
+      } catch (error) {
+        console.error("Booking error:", error);
+        alert("Something went wrong. Please try again.");
+      }
+    }
+
+    function cancelBooking() {
+      if (confirm("Are you sure you want to cancel the booking?")) {
+        document.querySelector(".booking-form").reset();
+        alert("Booking canceled.");
+      }
+    }
+
+    window.onload = function () {
+      fetchBarbers();
+      fetchServices();
+    };
+  </script>
+</body>
+</html>
