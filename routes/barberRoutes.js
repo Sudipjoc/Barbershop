@@ -1,337 +1,263 @@
-const express = require("express");
-const router = express.Router();
-const authMiddleware = require("../middleware/auth");
-const Booking = require("../models/Booking");
-const Barber = require("../models/Barber");
-const { io } = require("../server");
+const barberId = localStorage.getItem("barberId") || null;
+const token = localStorage.getItem("token") || null;
+const socket = io();
 
-// ✅ Fetch all barbers and their services
-router.get("/barbers", async (req, res) => {
-  try {
-    const barbers = await Barber.find().select("name shopStatus services location");
-    res.json(barbers);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching barbers" });
-  }
+if (!barberId || !token) {
+  localStorage.clear();
+  window.location.href = "/login.html";
+}
+
+// Elements
+const statusText = document.getElementById("shopStatusDisplay");
+const statusToggle = document.getElementById("shopToggle");
+const availabilitySelect = document.getElementById("availabilityToggle");
+const availabilityDisplay = document.getElementById("availabilityStatusDisplay");
+const messageBox = document.getElementById("message");
+const logoutBtn = document.getElementById("logoutBtn");
+const serviceBody = document.getElementById("serviceTableBody");
+const addServiceForm = document.getElementById("addServiceForm");
+const employeeForm = document.getElementById("addEmployeeForm");
+const employeeList = document.getElementById("employeeTableBody");
+const dropZone = document.getElementById("dropZone");
+const photoInput = document.getElementById("employeePhoto");
+const previewImage = document.getElementById("previewImage");
+
+// Logout
+logoutBtn?.addEventListener("click", () => logout());
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "/login.html";
+}
+
+function showMessage(text, type) {
+  messageBox.textContent = text;
+  messageBox.className = `alert alert-${type}`;
+  messageBox.style.display = "block";
+  setTimeout(() => (messageBox.style.display = "none"), 3000);
+}
+
+// ---------------- SHOP STATUS ----------------
+function updateStatusUI(status) {
+  statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+  statusToggle.checked = status === "open";
+  statusText.className = `shop-status ${status}`;
+}
+
+async function fetchBarberStatus() {
+  const res = await fetch(`http://localhost:5000/barber/${barberId}/status`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) return logout();
+  const data = await res.json();
+  updateStatusUI(data.shopStatus);
+}
+
+statusToggle?.addEventListener("change", async () => {
+  const status = statusToggle.checked ? "open" : "closed";
+  const res = await fetch("http://localhost:5000/barber/status", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (res.status === 401) return logout();
+  const data = await res.json();
+  updateStatusUI(data.barber.shopStatus);
+  socket.emit("shopStatusUpdate", { barberId, status: data.barber.shopStatus });
+  showMessage("Shop status updated", "success");
 });
 
-// ✅ Get current barber's shop status
-router.get("/me/status", authMiddleware, async (req, res) => {
-  try {
-    const barber = await Barber.findById(req.user.id);
-    if (!barber) return res.status(404).json({ message: "Barber not found" });
-    res.json({ shopStatus: barber.shopStatus });
-  } catch (error) {
-    console.error("Error fetching barber status:", error);
-    res.status(500).json({ message: "Server error" });
-  }
+// ---------------- AVAILABILITY ----------------
+function updateAvailabilityUI(status) {
+  availabilityDisplay.textContent = status;
+  availabilityDisplay.className = `availability-status ${status.toLowerCase()}`;
+  availabilitySelect.value = status;
+}
+
+async function fetchAvailabilityStatus() {
+  const res = await fetch("http://localhost:5000/barber/me/availability", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) return logout();
+  const data = await res.json();
+  updateAvailabilityUI(data.availabilityStatus);
+}
+
+availabilitySelect?.addEventListener("change", async () => {
+  const availabilityStatus = availabilitySelect.value;
+  const res = await fetch("http://localhost:5000/barber/availability", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ availabilityStatus }),
+  });
+  if (res.status === 401) return logout();
+  const data = await res.json();
+  showMessage(data.message, "success");
+  updateAvailabilityUI(data.availabilityStatus);
 });
 
-// ✅ Get barber's own availability
-router.get("/me/availability", authMiddleware, async (req, res) => {
-  try {
-    const barber = await Barber.findById(req.user.id).select("availabilityStatus");
-    if (!barber) return res.status(404).json({ message: "Barber not found" });
-    res.json({ availabilityStatus: barber.availabilityStatus });
-  } catch (error) {
-    console.error("Error fetching availability status:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+// ---------------- NAVIGATION ----------------
+function showSection(section) {
+  const sections = ["addServiceSection", "employeesSection", "bookingSection"];
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === `${section}Section` ? "block" : "none";
+  });
 
-// ✅ PUT barber's availability status
-router.put("/availability", authMiddleware, async (req, res) => {
-  try {
-    const { availabilityStatus } = req.body;
-    if (!["Available", "Busy"].includes(availabilityStatus)) {
-      return res.status(400).json({ message: "Invalid availability status" });
-    }
-
-    const barber = await Barber.findByIdAndUpdate(
-      req.user.id,
-      { availabilityStatus },
-      { new: true, select: "availabilityStatus name" }
-    );
-
-    if (!barber) return res.status(404).json({ message: "Barber not found" });
-
-    res.json({
-      message: "Availability status updated",
-      availabilityStatus: barber.availabilityStatus,
-      barberName: barber.name,
-    });
-  } catch (error) {
-    console.error("Error updating availability status:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ✅ Get any barber's availability by ID
-router.get("/:id/availability", async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (!id || id === "undefined") {
-      return res.status(400).json({ message: "Invalid barber ID" });
-    }
-    const barber = await Barber.findById(id).select("availabilityStatus name");
-    if (!barber) return res.status(404).json({ message: "Barber not found" });
-    res.json({ availabilityStatus: barber.availabilityStatus, barberName: barber.name });
-  } catch (error) {
-    console.error("Error fetching public availability:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ✅ Update shop status
-router.put("/status", authMiddleware, async (req, res) => {
-  try {
-    const { status } = req.body;
-    const barber = await Barber.findByIdAndUpdate(
-      req.user.id,
-      { shopStatus: status },
-      { new: true }
-    );
-    if (!barber) return res.status(404).json({ message: "Barber not found" });
-
-    res.json({ message: "Shop status updated!", barber });
-  } catch (error) {
-    console.error("Error updating shop status:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ✅ Get shop status
-router.get("/:id/status", async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (!id || id === "undefined") {
-      return res.status(400).json({ message: "Invalid barber ID" });
-    }
-    const barber = await Barber.findById(id);
-    if (!barber) return res.status(404).json({ message: "Barber not found!" });
-    res.json({ shopStatus: barber.shopStatus });
-  } catch (error) {
-    console.error("Error fetching status:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ✅ Fetch all appointments
-router.get("/:barberId/appointments", async (req, res) => {
-  try {
-    const { barberId } = req.params;
-    if (!barberId || barberId === "undefined") {
-      return res.status(400).json({ message: "Invalid barber ID" });
-    }
-
-    const bookings = await Booking.find({ barber: barberId })
-      .populate("user", "username")
-      .sort({ createdAt: -1 });
-
-    res.json(bookings);
-  } catch (error) {
-    console.error("Error fetching bookings:", error);
-    res.status(500).json({ message: "Error fetching bookings" });
-  }
-});
-
-// ✅ Accept appointment
-router.put("/:barberId/acceptAppointment", async (req, res) => {
-  const { appointmentId } = req.body;
-  await Booking.findByIdAndUpdate(appointmentId, { status: "Confirmed" });
-  res.json({ message: "Appointment confirmed" });
-});
-
-// ✅ Reschedule appointment
-router.put("/:barberId/updateTime", async (req, res) => {
-  const { appointmentId, newTime } = req.body;
-  await Booking.findByIdAndUpdate(appointmentId, { bookingTime: new Date(newTime) });
-  res.json({ message: "Time updated" });
-});
-
-// ✅ Mark appointment as completed
-router.put("/:barberId/markAsDone", async (req, res) => {
-  const { appointmentId } = req.body;
-
-  try {
-    const booking = await Booking.findByIdAndUpdate(
-      appointmentId,
-      { status: "Completed" },
-      { new: true }
-    );
-    if (!booking) return res.status(404).json({ message: "Appointment not found" });
-
-    res.json({ message: "Appointment marked as completed!" });
-  } catch (err) {
-    console.error("Error completing appointment:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ✅ Get Employees
-router.get("/employees", authMiddleware, async (req, res) => {
-  try {
-    const barber = await Barber.findById(req.user.id);
-    if (!barber) return res.status(404).json({ msg: "Barber not found." });
-
-    res.json(barber.employees);
-  } catch (error) {
-    console.error("Fetch Employees Error:", error);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-// ✅ Add Employee (with file upload)
-router.post("/employees/add", authMiddleware, (req, res) => {
-  req.upload.single("photo")(req, res, async (err) => {
-    if (err) return res.status(400).json({ msg: err.message });
-
-    const { name, job } = req.body;
-    const photo = req.file ? `/uploads/${req.file.filename}` : null;
-
-    if (!name || !job || !photo) {
-      return res.status(400).json({ msg: "Name, job, and photo are required." });
-    }
-
-    try {
-      const barber = await Barber.findById(req.user.id);
-      if (!barber) return res.status(404).json({ msg: "Barber not found." });
-
-      barber.employees.push({ name, job, photo });
-      await barber.save();
-
-      res.json({ msg: "Employee added!", employees: barber.employees });
-    } catch (error) {
-      console.error("Add Employee Error:", error);
-      res.status(500).json({ msg: "Server error" });
+  document.querySelectorAll(".nav-link").forEach(link => {
+    link.classList.remove("active");
+    if (link.textContent.toLowerCase().includes(section.toLowerCase())) {
+      link.classList.add("active");
     }
   });
+}
+
+// ---------------- SERVICES ----------------
+async function fetchServices() {
+  const res = await fetch("http://localhost:5000/barber/services", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) return logout();
+  const services = await res.json();
+  serviceBody.innerHTML = services.map(
+    (srv, i) => `
+      <tr>
+        <td>${srv.type}</td>
+        <td>NPR ${srv.price}</td>
+        <td>
+          <button class="btn btn-warning btn-sm" onclick="editService(${i}, '${srv.type}', ${srv.price})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteService(${i})">Delete</button>
+        </td>
+      </tr>`
+  ).join("");
+}
+
+addServiceForm?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const type = document.getElementById("newServiceType").value;
+  const price = document.getElementById("newServicePrice").value;
+  const res = await fetch("http://localhost:5000/barber/services", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ type, price }),
+  });
+  if (res.status === 401) return logout();
+  showMessage("Service added", "success");
+  addServiceForm.reset();
+  fetchServices();
 });
 
-// ✅ Update Employee
-router.put("/employees/update/:employeeId", authMiddleware, async (req, res) => {
-  try {
-    const { name, photo, job } = req.body;
-    const barber = await Barber.findById(req.user.id);
-    if (!barber) return res.status(404).json({ msg: "Barber not found." });
+window.editService = async (index, currentType, currentPrice) => {
+  const newType = prompt("Edit service type:", currentType);
+  const newPrice = prompt("Edit service price:", currentPrice);
+  if (!newType || !newPrice) return;
+  const res = await fetch(`http://localhost:5000/barber/services/${index}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ type: newType, price: newPrice }),
+  });
+  if (res.status === 401) return logout();
+  showMessage("Service updated", "success");
+  fetchServices();
+};
 
-    const employee = barber.employees.id(req.params.employeeId);
-    if (!employee) return res.status(404).json({ msg: "Employee not found." });
+window.deleteService = async index => {
+  const res = await fetch(`http://localhost:5000/barber/services/${index}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) return logout();
+  showMessage("Service deleted", "success");
+  fetchServices();
+};
 
-    employee.name = name || employee.name;
-    employee.photo = photo || employee.photo;
-    employee.job = job || employee.job;
-    await barber.save();
+// ---------------- EMPLOYEES ----------------
+async function fetchEmployees() {
+  const res = await fetch("http://localhost:5000/barber/employees", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) return logout();
+  const employees = await res.json();
+  employeeList.innerHTML = employees.map(
+    emp => `
+      <tr>
+        <td><img src="${emp.photo}" height="50" /></td>
+        <td>${emp.name}</td>
+        <td>${emp.job}</td>
+        <td>
+          <button class="btn btn-warning btn-sm" onclick="editEmployee('${emp._id}', '${emp.name}', '${emp.job}', '${emp.photo}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${emp._id}')">Delete</button>
+        </td>
+      </tr>`
+  ).join("");
+}
 
-    res.json({ msg: "Employee updated!", employees: barber.employees });
-  } catch (error) {
-    console.error("Update Employee Error:", error);
-    res.status(500).json({ msg: "Server error" });
-  }
+employeeForm?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = document.getElementById("employeeName").value;
+  const job = document.getElementById("employeeJob").value;
+  const photoFile = document.getElementById("employeePhoto").files[0];
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("job", job);
+  formData.append("photo", photoFile);
+
+  const res = await fetch("http://localhost:5000/barber/employees/add", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (res.status === 401) return logout();
+  showMessage("Employee added", "success");
+  employeeForm.reset();
+  previewImage.style.display = "none";
+  fetchEmployees();
 });
 
-// ✅ Delete Employee
-router.delete("/employees/delete/:employeeId", authMiddleware, async (req, res) => {
-  try {
-    const barber = await Barber.findById(req.user.id);
-    if (!barber) return res.status(404).json({ msg: "Barber not found." });
+window.editEmployee = async (id, name, job, photo) => {
+  const newName = prompt("Edit name:", name);
+  const newJob = prompt("Edit job:", job);
+  if (!newName || !newJob) return;
 
-    const index = barber.employees.findIndex(emp => emp._id.toString() === req.params.employeeId);
-    if (index === -1) return res.status(404).json({ msg: "Employee not found." });
+  const res = await fetch(`http://localhost:5000/barber/employees/update/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name: newName, job: newJob, photo }),
+  });
+  if (res.status === 401) return logout();
+  showMessage("Employee updated", "success");
+  fetchEmployees();
+};
 
-    barber.employees.splice(index, 1);
-    await barber.save();
+window.deleteEmployee = async id => {
+  const res = await fetch(`http://localhost:5000/barber/employees/delete/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) return logout();
+  showMessage("Employee deleted", "success");
+  fetchEmployees();
+};
 
-    res.json({ msg: "Employee deleted!", employees: barber.employees });
-  } catch (error) {
-    console.error("Delete Employee Error:", error);
-    res.status(500).json({ msg: "Server error" });
-  }
+// ---------------- INIT ----------------
+window.addEventListener("DOMContentLoaded", () => {
+  fetchBarberStatus();
+  fetchAvailabilityStatus();
+  fetchServices();
+  fetchEmployees();
+  showBookingSection("Pending");
 });
-
-
-router.post("/services", authMiddleware, async (req, res) => {
-  try {
-    console.log("Received body:", req.body); // ✅ Log input
-
-    const { type, price } = req.body;
-    if (!type || !price) {
-      return res.status(400).json({ msg: "Type and price are required." });
-    }
-
-    const barber = await Barber.findById(req.user.id);
-    if (!barber) return res.status(404).json({ msg: "Barber not found." });
-
-    barber.services.push({ type, price });
-    await barber.save();
-
-    res.json({ msg: "Service added successfully", services: barber.services });
-  } catch (error) {
-    console.error("Add Service Error:", error);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-router.get("/services", authMiddleware, async (req, res) => {
-  try {
-    const barber = await Barber.findById(req.user.id).select("services");
-    if (!barber) return res.status(404).json({ msg: "Barber not found." });
-    res.json(barber.services);
-  } catch (err) {
-    console.error("Fetch Services Error:", err);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-
-// UPDATE a specific service by index//i have already use this index for editing so thats why i change it here to implement edit functionality
-router.put("/services/:index", authMiddleware, async (req, res) => {
-  try {
-    const { type, price } = req.body;
-    const index = parseInt(req.params.index);
-
-    if (!type || price == null) {
-      return res.status(400).json({ msg: "Type and price are required." });
-    }
-
-    const barber = await Barber.findById(req.user.id);
-    if (!barber) return res.status(404).json({ msg: "Barber not found." });
-
-    if (!barber.services[index]) {
-      return res.status(404).json({ msg: "Service not found at index." });
-    }
-
-    barber.services[index].type = type;
-    barber.services[index].price = price;
-    await barber.save();
-
-    res.json({ msg: "Service updated successfully", services: barber.services });
-  } catch (error) {
-    console.error("Update Service Error:", error);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-// DELETE a specific service by index //i have already use this index for deleting so thats why i change it here to implement delete functionality
-router.delete("/services/:index", authMiddleware, async (req, res) => {
-  try {
-    const index = parseInt(req.params.index);
-    const barber = await Barber.findById(req.user.id);
-    if (!barber) return res.status(404).json({ msg: "Barber not found." });
-
-    if (!barber.services[index]) {
-      return res.status(404).json({ msg: "Service not found at index." });
-    }
-
-    barber.services.splice(index, 1); // Remove service
-    await barber.save();
-
-    res.json({ msg: "Service deleted successfully", services: barber.services });
-  } catch (error) {
-    console.error("Delete Service Error:", error);
-    res.status(500).json({ msg: "Server error" });
-  }
-});
-
-
-module.exports = router;

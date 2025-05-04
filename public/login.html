@@ -192,58 +192,66 @@
   <script>
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-
-      const email = document.querySelector("input[name='email']").value;
+  
+      const email = document.querySelector("input[name='email']").value.trim();
       const password = document.querySelector("input[name='password']").value;
       const loginBtn = document.getElementById("loginBtn");
-      loginBtn.innerText = "Logging in..."; // Show loading
-
+  
+      loginBtn.disabled = true;
+      loginBtn.innerText = "Logging in...";
+  
       try {
         const response = await fetch("http://localhost:5000/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password })
         });
-
+  
         const data = await response.json();
-
+  
         if (!response.ok) {
           throw new Error(data.message || "Invalid email or password");
         }
-
-        if (data.token) {
+  
+        if (data.token && data.user) {
           // Save token and user info
           localStorage.setItem("token", data.token);
           localStorage.setItem("role", data.user.role);
-          localStorage.setItem("userId", data.user.id);
-
+          localStorage.setItem("userId", data.user._id); // ✅ fixed from .id to ._id
+  
           if (data.user.role === "barber") {
-            localStorage.setItem("barberId", data.user.id);
-            localStorage.setItem("barberName", data.user.name);
+            localStorage.setItem("barberId", data.user._id); // ✅ fixed
+            localStorage.setItem("barberName", data.user.name || ""); // fallback
           }
-
+  
           // Clear form
           document.getElementById("loginForm").reset();
-
+  
           // Redirect based on role
-          if (data.user.role === "admin") {
-            window.location.href = "admin.html";
-          } else if (data.user.role === "barber") {
-            window.location.href = "barberdashboard.html";
-          } else {
-            window.location.href = "index2.html";
+          switch (data.user.role) {
+            case "admin":
+              window.location.href = "admin.html";
+              break;
+            case "barber":
+              window.location.href = "barberdashboard.html";
+              break;
+            default:
+              window.location.href = "index2.html";
+              break;
           }
         } else {
           alert("Invalid Credentials");
         }
       } catch (error) {
         console.error("Login Error:", error);
-        alert(error.message || "Login failed, please try again.");
+        alert(error.message || "Login failed. Please try again.");
       } finally {
-        loginBtn.innerText = "Login"; // Reset button text
+        loginBtn.disabled = false;
+        loginBtn.innerText = "Login";
       }
     });
   </script>
+  
 </body>
 
 </html>

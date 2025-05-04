@@ -3,21 +3,33 @@ const token = localStorage.getItem("token") || null;
 const socket = io();
 
 if (!barberId || !token) {
-  console.error("Missing barberId or token, redirecting to login");
   localStorage.clear();
   window.location.href = "/login.html";
 }
 
+// Elements
 const statusText = document.getElementById("shopStatusDisplay");
 const statusToggle = document.getElementById("shopToggle");
 const messageBox = document.getElementById("message");
-const revenueBox = document.getElementById("revenueTotal");
 const logoutBtn = document.getElementById("logoutBtn");
+const serviceBody = document.getElementById("serviceTableBody");
+const addServiceForm = document.getElementById("addServiceForm");
+const employeeForm = document.getElementById("addEmployeeForm");
+const employeeList = document.getElementById("employeeTableBody");
+const dropZone = document.getElementById("dropZone");
+const photoInput = document.getElementById("employeePhoto");
+const previewImage = document.getElementById("previewImage");
 
-logoutBtn.addEventListener("click", () => {
+// Logout
+logoutBtn?.addEventListener("click", () => {
   localStorage.clear();
   window.location.href = "/login.html";
 });
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "/login.html";
+}
 
 function showMessage(text, type) {
   messageBox.textContent = text;
@@ -26,147 +38,146 @@ function showMessage(text, type) {
   setTimeout(() => (messageBox.style.display = "none"), 3000);
 }
 
+// ---------------- SHOP STATUS ----------------
 function updateStatusUI(status) {
-  if (!statusText || !statusToggle) return;
   statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-  statusText.className = `shop-status ${status}`;
   statusToggle.checked = status === "open";
+  statusText.className = `shop-status ${status}`;
 }
 
 async function fetchBarberStatus() {
-  if (!barberId) return;
-  try {
-    const res = await fetch(`http://localhost:5000/barber/${barberId}/status`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-    const data = await res.json();
-    if (data.shopStatus) {
-      updateStatusUI(data.shopStatus);
-      localStorage.setItem("shopStatus", data.shopStatus);
-    }
-  } catch (err) {
-    console.error("❌ Error fetching barber status:", err);
-    showMessage("Error loading shop status", "danger");
-  }
+  const res = await fetch(`http://localhost:5000/barber/${barberId}/status`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) return logout();
+  const data = await res.json();
+  updateStatusUI(data.shopStatus);
 }
 
 statusToggle?.addEventListener("change", async () => {
   const status = statusToggle.checked ? "open" : "closed";
-  try {
-    const res = await fetch(`http://localhost:5000/barber/status`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ status }),
-    });
-    const data = await res.json();
-    if (data?.barber?.shopStatus) {
-      updateStatusUI(data.barber.shopStatus);
-      localStorage.setItem("shopStatus", data.barber.shopStatus);
-      showMessage("Shop status updated", "success");
-      socket.emit("shopStatusUpdate", { barberId, status: data.barber.shopStatus });
-    } else {
-      showMessage("Failed to update status", "danger");
-    }
-  } catch (err) {
-    console.error("❌ Error updating shop status:", err);
-    showMessage("Failed to update shop status", "danger");
-    statusToggle.checked = !statusToggle.checked;
-  }
+  const res = await fetch("http://localhost:5000/barber/status", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (res.status === 401) return logout();
+  const data = await res.json();
+  updateStatusUI(data.barber.shopStatus);
+  socket.emit("shopStatusUpdate", { barberId, status: data.barber.shopStatus });
+  showMessage("Shop status updated", "success");
 });
 
+// ---------------- NAVIGATION ----------------
 function showSection(section) {
-  const allSections = [
-    "confirmedSection",
-    "pendingSection",
-    "completedSection",
-    "addServiceSection",
-    "employeesSection"
-  ];
-
-  allSections.forEach(id => {
+  const sections = ["addServiceSection", "employeesSection", "bookingSection"];
+  sections.forEach(id => {
     const el = document.getElementById(id);
-    if (el) {
-      el.style.display = (id === section + "Section") ? "block" : "none";
-    }
+    if (el) el.style.display = id === `${section}Section` ? "block" : "none";
   });
 
-  document.querySelectorAll('.nav-link').forEach(link => {
+  document.querySelectorAll(".nav-link").forEach(link => {
     link.classList.remove("active");
-    if (link.textContent.toLowerCase().includes(section)) {
+    if (link.textContent.toLowerCase().includes(section.toLowerCase())) {
       link.classList.add("active");
     }
   });
 }
 
-// Service Management
-const serviceBody = document.getElementById("serviceTableBody");
-const addServiceForm = document.getElementById("addServiceForm");
-
+// ---------------- SERVICES ----------------
 async function fetchServices() {
   const res = await fetch("http://localhost:5000/barber/services", {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
   });
+  if (res.status === 401) return logout();
   const services = await res.json();
-  serviceBody.innerHTML = services.map((srv, i) => `
+  serviceBody.innerHTML = services
+    .map(
+      (srv, i) => `
     <tr>
       <td>${srv.type}</td>
       <td>NPR ${srv.price}</td>
-      <td class="table-actions">
-        <button class="btn btn-sm btn-warning" onclick="editService(${i}, '${srv.type}', ${srv.price})">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteService(${i})">Delete</button>
+      <td>
+        <button class="btn btn-warning btn-sm" onclick="editService(${i}, '${srv.type}', ${srv.price})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteService(${i})">Delete</button>
       </td>
-    </tr>
-  `).join("");
+    </tr>`
+    )
+    .join("");
 }
 
-addServiceForm.addEventListener("submit", async (e) => {
+addServiceForm?.addEventListener("submit", async e => {
   e.preventDefault();
   const type = document.getElementById("newServiceType").value;
   const price = document.getElementById("newServicePrice").value;
   const res = await fetch("http://localhost:5000/barber/services", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ type, price })
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ type, price }),
   });
-  const data = await res.json();
-  showMessage(data.msg || "Service added", "success");
+  if (res.status === 401) return logout();
+  showMessage("Service added", "success");
   addServiceForm.reset();
   fetchServices();
 });
 
 window.editService = async (index, currentType, currentPrice) => {
-  const newType = prompt("Update service type:", currentType);
-  const newPrice = prompt("Update service price:", currentPrice);
+  const newType = prompt("Edit service type:", currentType);
+  const newPrice = prompt("Edit service price:", currentPrice);
   if (!newType || !newPrice) return;
   const res = await fetch(`http://localhost:5000/barber/services/${index}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ type: newType, price: newPrice })
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ type: newType, price: newPrice }),
   });
-  const data = await res.json();
-  showMessage(data.msg || "Updated!", "success");
+  if (res.status === 401) return logout();
+  showMessage("Service updated", "success");
   fetchServices();
 };
 
-window.deleteService = async (index) => {
+window.deleteService = async index => {
   const res = await fetch(`http://localhost:5000/barber/services/${index}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
   });
-  const data = await res.json();
-  showMessage(data.msg || "Service deleted", "success");
+  if (res.status === 401) return logout();
+  showMessage("Service deleted", "success");
   fetchServices();
 };
 
-// Employee Management
-const employeeForm = document.getElementById("addEmployeeForm");
-const employeeList = document.getElementById("employeeTableBody");
+// ---------------- EMPLOYEES ----------------
+async function fetchEmployees() {
+  const res = await fetch("http://localhost:5000/barber/employees", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 401) return logout();
+  const employees = await res.json();
+  employeeList.innerHTML = employees
+    .map(
+      emp => `
+    <tr>
+      <td><img src="${emp.photo}" height="50" /></td>
+      <td>${emp.name}</td>
+      <td>${emp.job}</td>
+      <td>
+        <button class="btn btn-warning btn-sm" onclick="editEmployee('${emp._id}', '${emp.name}', '${emp.job}', '${emp.photo}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${emp._id}')">Delete</button>
+      </td>
+    </tr>`
+    )
+    .join("");
+}
 
-employeeForm?.addEventListener("submit", async (e) => {
+employeeForm?.addEventListener("submit", async e => {
   e.preventDefault();
   const name = document.getElementById("employeeName").value;
   const job = document.getElementById("employeeJob").value;
@@ -176,119 +187,358 @@ employeeForm?.addEventListener("submit", async (e) => {
   formData.append("job", job);
   formData.append("photo", photoFile);
 
-  try {
-    const res = await fetch("http://localhost:5000/barber/employees/add", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData
-    });
-    const data = await res.json();
-    showMessage(data.msg || "Employee added!", "success");
-    employeeForm.reset();
-    previewImage.style.display = "none";
-    fetchEmployees();
-  } catch (error) {
-    console.error("Error adding employee:", error);
-    showMessage("Error adding employee", "danger");
-  }
+  const res = await fetch("http://localhost:5000/barber/employees/add", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (res.status === 401) return logout();
+  showMessage("Employee added", "success");
+  employeeForm.reset();
+  previewImage.style.display = "none";
+  fetchEmployees();
 });
 
-async function fetchEmployees() {
-  try {
-    const res = await fetch("http://localhost:5000/barber/employees", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    renderEmployees(data);
-  } catch (error) {
-    console.error("Error fetching employees:", error);
-  }
-}
+window.editEmployee = async (id, name, job, photo) => {
+  const newName = prompt("Edit name:", name);
+  const newJob = prompt("Edit job:", job);
+  if (!newName || !newJob) return;
 
-function renderEmployees(employees) {
-  if (!employeeList) return;
-  employeeList.innerHTML = "";
-  employees.forEach((emp, index) => {
-    employeeList.innerHTML += `
-      <tr>
-        <td><img src="${emp.photo}" height="50"/></td>
-        <td>${emp.name}</td>
-        <td>${emp.job}</td>
-        <td>
-          <button class="btn btn-sm btn-warning" onclick="editEmployee('${emp._id}', '${emp.name}', '${emp.job}', '${emp.photo}')">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteEmployee('${emp._id}')">Delete</button>
-        </td>
-      </tr>
-    `;
-  });
-}
-
-window.editEmployee = async (id, currentName, currentJob, currentPhoto) => {
-  const name = prompt("Edit name:", currentName);
-  const job = prompt("Edit job title:", currentJob);
-  if (!name || !job) return;
   const res = await fetch(`http://localhost:5000/barber/employees/update/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ name, job, photo: currentPhoto })
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name: newName, job: newJob, photo }),
   });
-  const data = await res.json();
-  showMessage(data.msg || "Updated!", "success");
+  if (res.status === 401) return logout();
+  showMessage("Employee updated", "success");
   fetchEmployees();
 };
 
-window.deleteEmployee = async (id) => {
+window.deleteEmployee = async id => {
   const res = await fetch(`http://localhost:5000/barber/employees/delete/${id}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
   });
-  const data = await res.json();
-  showMessage(data.msg || "Deleted!", "success");
+  if (res.status === 401) return logout();
+  showMessage("Employee deleted", "success");
   fetchEmployees();
 };
 
-// Image preview
-const dropZone = document.getElementById("dropZone");
-const photoInput = document.getElementById("employeePhoto");
-const previewImage = document.getElementById("previewImage");
-
-dropZone?.addEventListener("dragover", (e) => {
+// ---------------- IMAGE PREVIEW ----------------
+dropZone?.addEventListener("dragover", e => e.preventDefault());
+dropZone?.addEventListener("drop", e => {
   e.preventDefault();
-  dropZone.classList.add("bg-light");
-});
-
-dropZone?.addEventListener("dragleave", () => {
-  dropZone.classList.remove("bg-light");
-});
-
-dropZone?.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropZone.classList.remove("bg-light");
-  const files = e.dataTransfer.files;
-  if (files.length > 0 && files[0].type.startsWith("image/")) {
-    photoInput.files = files;
-    showPreview(files[0]);
+  const file = e.dataTransfer.files[0];
+  if (file?.type.startsWith("image/")) {
+    photoInput.files = e.dataTransfer.files;
+    showPreview(file);
   }
 });
-
 photoInput?.addEventListener("change", () => {
-  if (photoInput.files.length > 0) {
-    showPreview(photoInput.files[0]);
-  }
+  if (photoInput.files.length) showPreview(photoInput.files[0]);
 });
 
 function showPreview(file) {
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = e => {
     previewImage.src = e.target.result;
     previewImage.style.display = "block";
   };
   reader.readAsDataURL(file);
 }
+// ---------------- BOOKINGS ----------------
+function showBookingSection(status) {
+  showSection("booking");
+  document.getElementById("bookingTitle").textContent = `${status} Bookings`;
+  fetchBookingsByStatus(status);
+}
+
+async function fetchBookingsByStatus(status) {
+  try {
+    const res = await fetch("http://localhost:5000/book/bookings", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) return logout();
+
+    const bookings = await res.json();
+
+    const filtered = bookings.filter(
+      b => String(b.barber?._id || b.barber) === String(barberId) && b.status === status
+    );
+
+    renderBookings(filtered, status);
+  } catch (err) {
+    console.error("Fetch bookings error:", err);
+    showMessage("Failed to load bookings", "danger");
+  }
+}
+
+function renderBookings(bookings, status) {
+  const container = document.getElementById("bookingList");
+  container.innerHTML = "";
+
+  if (!bookings.length) {
+    container.innerHTML = `<p class="text-muted">No ${status} bookings found.</p>`;
+    return;
+  }
+
+  bookings.forEach(b => {
+    const bookingDate = new Date(b.bookingTime).toLocaleString();
+    let actionButtons = "";
+
+    if (b.status === "Pending") {
+      actionButtons = `
+        <button class="btn btn-success btn-sm" onclick="updateBookingStatus('${b._id}', 'Confirmed')">Confirm</button>
+        <button class="btn btn-warning btn-sm" onclick="reschedulePendingBooking('${b._id}')">Reschedule</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBooking('${b._id}')">Delete</button>
+      `;
+    } else if (b.status === "Confirmed") {
+      actionButtons = `
+        <button class="btn btn-primary btn-sm" onclick="updateBookingStatus('${b._id}', 'Completed')">Mark Completed</button>
+      `;
+    }
+
+    container.innerHTML += `
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5>${b.name} (${b.service})</h5>
+          <p><strong>Time:</strong> ${bookingDate}</p>
+          <p><strong>Phone:</strong> ${b.phone} | <strong>Area:</strong> ${b.area}</p>
+          <p><strong>Status:</strong> ${b.status}</p>
+          <div class="d-flex gap-2 flex-wrap">${actionButtons}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+async function updateBookingStatus(id, status) {
+  try {
+    const res = await fetch(`http://localhost:5000/book/bookings/${id}/status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (res.status === 401) return logout();
+    const data = await res.json();
+    showMessage(data.msg || "Status updated", "success");
+
+    // Refresh the new status list (e.g. showConfirmed if just confirmed)
+    showBookingSection(status);
+  } catch (err) {
+    console.error("Status update error:", err);
+    showMessage("Failed to update status", "danger");
+  }
+}
+
+function reschedulePendingBooking(id) {
+  const newTime = prompt("Enter new time (YYYY-MM-DD HH:mm):");
+  if (!newTime) return;
+
+  fetch(`http://localhost:5000/book/bookings/${id}/time`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ newTime }),
+  })
+    .then(res => {
+      if (res.status === 401) return logout();
+      return res.json();
+    })
+    .then(data => {
+      showMessage(data.msg || "Rescheduled successfully", "success");
+      showBookingSection("Confirmed"); // Show it under confirmed after rescheduling
+    })
+    .catch(err => {
+      console.error("Reschedule error:", err);
+      showMessage("Failed to reschedule", "danger");
+    });
+}
+
+async function deleteBooking(id) {
+  if (!confirm("Are you sure you want to delete this booking?")) return;
+
+  try {
+    const res = await fetch(`http://localhost:5000/book/bookings/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) return logout();
+    const data = await res.json();
+    showMessage(data.msg || "Booking deleted", "success");
+
+    // Always refresh current visible bookings
+    const currentStatus = document.getElementById("bookingTitle").textContent.split(" ")[0];
+    showBookingSection(currentStatus);
+  } catch (err) {
+    console.error("Delete error:", err);
+    showMessage("Failed to delete booking", "danger");
+  }
+}
+
+// ---------------- BOOKINGS ----------------
+function showBookingSection(status) {
+  showSection("booking");
+  document.getElementById("bookingTitle").textContent = `${status} Bookings`;
+  fetchBookingsByStatus(status);
+}
+
+async function fetchBookingsByStatus(status) {
+  try {
+    const res = await fetch("http://localhost:5000/book/bookings", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) return logout();
+
+    const bookings = await res.json();
+    const filtered = bookings.filter(
+      b => String(b.barber?._id || b.barber) === String(barberId) && b.status === status
+    );
+
+    renderBookings(filtered, status);
+  } catch (err) {
+    console.error("Fetch bookings error:", err);
+    showMessage("Failed to load bookings", "danger");
+  }
+}
+
+function renderBookings(bookings, status) {
+  const container = document.getElementById("bookingList");
+  container.innerHTML = "";
+
+  if (!bookings.length) {
+    container.innerHTML = `<p class="text-muted">No ${status} bookings found.</p>`;
+    return;
+  }
+
+  bookings.forEach(b => {
+    const bookingDate = new Date(b.bookingTime).toLocaleString();
+    let actionButtons = "";
+
+    if (b.status === "Pending") {
+      actionButtons = `
+        <button class="btn btn-success btn-sm" onclick="updateBookingStatus('${b._id}', 'Confirmed')">Confirm</button>
+        <button class="btn btn-warning btn-sm" onclick="reschedulePendingBooking('${b._id}')">Reschedule</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBooking('${b._id}')">Delete</button>
+      `;
+    } else if (b.status === "Confirmed") {
+      actionButtons = `
+        <button class="btn btn-primary btn-sm" onclick="updateBookingStatus('${b._id}', 'Completed')">Mark Completed</button>
+      `;
+    }
+
+    container.innerHTML += `
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5>${b.name} (${b.service})</h5>
+          <p><strong>Time:</strong> ${bookingDate}</p>
+          <p><strong>Phone:</strong> ${b.phone} | <strong>Area:</strong> ${b.area}</p>
+          <p><strong>Status:</strong> ${b.status}</p>
+          <div class="d-flex gap-2 flex-wrap">${actionButtons}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+async function updateBookingStatus(appointmentId, status) {
+  let endpoint = "";
+  const payload = { appointmentId };
+
+  if (status === "Confirmed") {
+    endpoint = `http://localhost:5000/barber/${barberId}/acceptAppointment`;
+  } else if (status === "Completed") {
+    endpoint = `http://localhost:5000/barber/${barberId}/markAsDone`;
+  } else {
+    showMessage("Unsupported status change", "danger");
+    return;
+  }
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.status === 401) return logout();
+
+    const data = await res.json();
+    showMessage(data.message || "Status updated successfully", "success");
+
+    showBookingSection(status); // Refresh updated status view
+
+  } catch (error) {
+    console.error("Status update error:", error);
+    showMessage("Failed to update status", "danger");
+  }
+}
+
+function reschedulePendingBooking(appointmentId) {
+  const newTime = prompt("Enter new time (YYYY-MM-DD HH:mm):");
+  if (!newTime) return;
+
+  fetch(`http://localhost:5000/barber/${barberId}/updateTime`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ appointmentId, newTime }),
+  })
+    .then(res => {
+      if (res.status === 401) return logout();
+      return res.json();
+    })
+    .then(data => {
+      showMessage(data.message || "Rescheduled successfully", "success");
+      showBookingSection("Confirmed"); // Move it to confirmed after reschedule
+    })
+    .catch(err => {
+      console.error("Reschedule error:", err);
+      showMessage("Failed to reschedule", "danger");
+    });
+}
+
+async function deleteBooking(id) {
+  if (!confirm("Are you sure you want to delete this booking?")) return;
+
+  try {
+    const res = await fetch(`http://localhost:5000/book/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) return logout();
+    const data = await res.json();
+    showMessage(data.msg || "Booking deleted", "success");
+
+    const currentStatus = document.getElementById("bookingTitle").textContent.split(" ")[0];
+    showBookingSection(currentStatus);
+  } catch (err) {
+    console.error("Delete error:", err);
+    showMessage("Failed to delete booking", "danger");
+  }
+}
 
 
 
 
-fetchBarberStatus();
-fetchServices();
-fetchEmployees();
+// ---------------- INIT ----------------
+window.addEventListener("DOMContentLoaded", () => {
+  fetchBarberStatus();
+  fetchServices();
+  fetchEmployees();
+  showBookingSection("Pending");
+});

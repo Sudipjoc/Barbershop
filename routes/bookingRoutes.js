@@ -51,7 +51,7 @@ router.get("/my", auth, async (req, res) => {
 });
 
 // ✅ Get all bookings (Admin / Barber)
-router.get("/", auth, async (req, res) => {
+router.get("/bookings", auth, async (req, res) => {
   try {
     const query = req.user.role === "barber" ? { barber: req.user.id } : {};
 
@@ -62,13 +62,18 @@ router.get("/", auth, async (req, res) => {
 
     res.json(bookings);
   } catch (error) {
-    console.error("Fetching Bookings Error:", error);
+    console.error("Fetching All Bookings Error:", error);
     res.status(500).json({ msg: "Server error" });
   }
 });
 
 // ✅ Update booking status (Confirm, Complete, Cancel)
 router.put("/:id/status", auth, async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ msg: "Invalid booking ID." });
+  }
+
   try {
     const { status } = req.body;
     const validStatuses = ["Pending", "Confirmed", "Completed", "Canceled", "Rescheduled"];
@@ -77,7 +82,7 @@ router.put("/:id/status", auth, async (req, res) => {
       return res.status(400).json({ msg: "Invalid status." });
     }
 
-    const booking = await Booking.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    const booking = await Booking.findByIdAndUpdate(id, { status }, { new: true });
     if (!booking) return res.status(404).json({ msg: "Booking not found." });
 
     res.json({ msg: `Status updated to ${status}`, booking });
@@ -89,10 +94,15 @@ router.put("/:id/status", auth, async (req, res) => {
 
 // ✅ Update booking time (Reschedule)
 router.put("/:id/time", auth, async (req, res) => {
-  try {
-    const { newTime } = req.body;
+  const { id } = req.params;
+  const { newTime } = req.body;
 
-    const booking = await Booking.findById(req.params.id);
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ msg: "Invalid booking ID." });
+  }
+
+  try {
+    const booking = await Booking.findById(id);
     if (!booking) return res.status(404).json({ msg: "Booking not found." });
 
     booking.bookingTime = newTime;
@@ -108,8 +118,14 @@ router.put("/:id/time", auth, async (req, res) => {
 
 // ✅ Get single booking detail
 router.get("/:id", auth, async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ msg: "Invalid booking ID." });
+  }
+
   try {
-    const booking = await Booking.findById(req.params.id)
+    const booking = await Booking.findById(id)
       .populate("user", "username")
       .populate("barber", "name");
 
@@ -124,8 +140,14 @@ router.get("/:id", auth, async (req, res) => {
 
 // ✅ Delete a booking
 router.delete("/:id", auth, async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ msg: "Invalid booking ID." });
+  }
+
   try {
-    const booking = await Booking.findByIdAndDelete(req.params.id);
+    const booking = await Booking.findByIdAndDelete(id);
     if (!booking) return res.status(404).json({ msg: "Booking not found." });
 
     res.json({ msg: "Booking deleted successfully" });

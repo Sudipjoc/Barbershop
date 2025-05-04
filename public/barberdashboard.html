@@ -55,11 +55,12 @@
         <h4>Barber Dash</h4>
       </div>
       <ul class="nav flex-column">
-        <li class="nav-item"><a class="nav-link active" onclick="showSection('confirmed')">✅ Confirmed</a></li>
-        <li class="nav-item"><a class="nav-link" onclick="showSection('pending')">⏳ Pending</a></li>
-        <li class="nav-item"><a class="nav-link" onclick="showSection('completed')">✔️ Completed</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('addService')">➕ Manage Services</a></li>
         <li class="nav-item"><a class="nav-link" onclick="showSection('employees')">👨‍🔧 Manage Employees</a></li>
+        <li class="nav-item mt-4"><strong>Bookings</strong></li>
+        <li class="nav-item"><a class="nav-link" onclick="showBookingSection('Pending')">⏳ Pending</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showBookingSection('Confirmed')">✅ Confirmed</a></li>
+        <li class="nav-item"><a class="nav-link" onclick="showBookingSection('Completed')">✔️ Completed</a></li>
       </ul>
       <div class="mt-auto text-center pt-4">
         <button id="logoutBtn" class="btn logout-btn w-100">Logout</button>
@@ -78,73 +79,8 @@
         </label>
       </div>
 
-      <div id="confirmedSection">
-        <h4>Confirmed Appointments</h4>
-        <ul id="confirmedAppointments" class="list-group"></ul>
-      </div>
-
-      <div id="pendingSection" style="display:none;">
-        <h4>Pending Appointments</h4>
-        <ul id="pendingAppointments" class="list-group"></ul>
-      </div>
-
-      <div id="completedSection" style="display:none;">
-        <h4>Completed Appointments</h4>
-        <ul id="completedAppointments" class="list-group"></ul>
-        <p><strong>Total Revenue:</strong> NPR <span id="revenueTotal">0.00</span></p>
-      </div>
-
-
-      <!-- Confirmed -->
-<div id="confirmedSection">
-  <h4>Confirmed Appointments</h4>
-  <table class="table table-bordered">
-    <thead>
-      <tr>
-        <th>User</th>
-        <th>Service</th>
-        <th>Time</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="confirmedAppointments"></tbody>
-  </table>
-</div>
-
-<!-- Pending -->
-<div id="pendingSection" style="display:none;">
-  <h4>Pending Appointments</h4>
-  <table class="table table-bordered">
-    <thead>
-      <tr>
-        <th>User</th>
-        <th>Service</th>
-        <th>Time</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="pendingAppointments"></tbody>
-  </table>
-</div>
-
-<!-- Completed -->
-<div id="completedSection" style="display:none;">
-  <h4>Completed Appointments</h4>
-  <table class="table table-bordered">
-    <thead>
-      <tr>
-        <th>User</th>
-        <th>Service</th>
-        <th>Time</th>
-      </tr>
-    </thead>
-    <tbody id="completedAppointments"></tbody>
-  </table>
-  <p><strong>Total Revenue:</strong> NPR <span id="revenueTotal">0.00</span></p>
-</div>
-
       <!-- Manage Services Section -->
-      <div id="addServiceSection" style="display:none;">
+      <div id="addServiceSection">
         <h4>Manage Services</h4>
         <form id="addServiceForm">
           <div class="mb-3">
@@ -202,6 +138,12 @@
           </thead>
           <tbody id="employeeTableBody"></tbody>
         </table>
+      </div>
+
+      <!-- Booking Section -->
+      <div id="bookingSection" style="display:none;">
+        <h4 id="bookingTitle">Bookings</h4>
+        <div id="bookingList" class="mt-3"></div>
       </div>
     </main>
   </div>
